@@ -154,7 +154,7 @@ Place the following into `TswapPool.t.sol`
 
 </details>
 
-**Recommended Mitigation:** Remove the extra incentive mechanism. If you want to keep this in, we should account for the change in the x * y = k protocol invariant. Or, we should set aside tokens in the same way we do with fees.
+**Recommended Mitigation:** Remove the extra incentive mechanism. If you want to keep this in, we should account for the change in the x \* y = k protocol invariant. Or, we should set aside tokens in the same way we do with fees.
 
 ```diff
 -        swap_count++;
@@ -172,7 +172,7 @@ Place the following into `TswapPool.t.sol`
 
 **Impact:** Transactions could be sent when market conditions are unfavorable to deposit, even when adding a deadline parameter.
 
-**Proof of Concept:** The deadline parameter is unused.
+**Proof of Concept:** The `deadline` parameter is unused.
 
 **Recommended Mitigation:** Consider making the following change to the function.
 
@@ -191,7 +191,7 @@ function deposit(
 
 ### [L-1] `TSwapPool::LiquidityAdded` event has parameters out of order
 
-**Description:** When the LiquidityAdded event is emitted in the `TSwapPool::\_addLiquidityMintAndTransfer` function, it logs values in an incorrect order. The poolTokensToDeposit value should go in the third parameter position, whereas the wethToDeposit value should go second.
+**Description:** When the LiquidityAdded event is emitted in the `TSwapPool::_addLiquidityMintAndTransfer` function, it logs values in an incorrect order. The `poolTokensToDeposit` value should go in the third parameter position, whereas the wethToDeposit value should go second.
 
 **Impact:** Event emission is incorrect, leading to off-chain functions potentially malfunctioning.
 
@@ -230,7 +230,7 @@ function deposit(
     }
 ```
 
-### [I-1] `PoolFactory::PoolFactory\_\_PoolDoesNotExist` is not used and should be removed
+### [I-1] `PoolFactory::PoolFactory__PoolDoesNotExist` is not used and should be removed
 
 ```diff
 -   error PoolFactory\_\_PoolDoesNotExist(address tokenAddress);
@@ -249,7 +249,7 @@ function deposit(
     }
 ```
 
-### [I-3] `PoolFacotry::createPool` should use .symbol() instead of .name()
+### [I-3] `PoolFactory::createPool` should use `.symbol()` instead of `.name()`
 
 ```diff
 -        string memory liquidityTokenSymbol = string.concat("ts", IERC20(tokenAddress).name());
