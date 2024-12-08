@@ -70,7 +70,8 @@ contract TSwapPoolHandler is Test {
     }
 
     function deposit(uint256 wethAmountToDeposit) public {
-        // make the amount to deposit a "reasonable" number. We wouldn't expect someone to have type(uint256).max WETH!!
+        // make the amount to deposit a "reasonable" number. 
+        // We wouldn't expect someone to have type(uint256).max WETH!!
         wethAmountToDeposit = bound(wethAmountToDeposit, pool.getMinimumWethDepositAmount(), type(uint64).max);
         uint256 amountPoolTokensToDepositBasedOnWeth = pool.getPoolTokensToDepositBasedOnWeth(wethAmountToDeposit);
         _updateStartingDeltas(int256(wethAmountToDeposit), int256(amountPoolTokensToDepositBasedOnWeth));
