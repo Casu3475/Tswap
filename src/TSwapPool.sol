@@ -19,18 +19,10 @@ import {ERC20, IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract TSwapPool is ERC20 {
     error TSwapPool__DeadlineHasPassed(uint64 deadline);
-    error TSwapPool__MaxPoolTokenDepositTooHigh(
-        uint256 maximumPoolTokensToDeposit,
-        uint256 poolTokensToDeposit
-    );
+    error TSwapPool__MaxPoolTokenDepositTooHigh(uint256 maximumPoolTokensToDeposit, uint256 poolTokensToDeposit);
     error TSwapPool__MinLiquidityTokensToMintTooLow(
-        uint256 minimumLiquidityTokensToMint,
-        uint256 liquidityTokensToMint
-    );
-    error TSwapPool__WethDepositAmountTooLow(
-        uint256 minimumWethDeposit,
-        uint256 wethToDeposit
-    );
+        uint256 minimumLiquidityTokensToMint, uint256 liquidityTokensToMint);
+    error TSwapPool__WethDepositAmountTooLow(uint256 minimumWethDeposit, uint256 wethToDeposit);
     error TSwapPool__InvalidToken();
     error TSwapPool__OutputTooLow(uint256 actual, uint256 min);
     error TSwapPool__MustBeMoreThanZero();
@@ -44,7 +36,7 @@ contract TSwapPool is ERC20 {
     IERC20 private immutable i_poolToken;
     uint256 private constant MINIMUM_WETH_LIQUIDITY = 1_000_000_000;
     uint256 private swap_count = 0;
-    uint256 private constant SWAP_COUNT_MAX = 10;
+    uint256 private constant SWAP_COUNT_MAX = 10; // cause of bugs in invariant test !
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -92,8 +84,9 @@ contract TSwapPool is ERC20 {
         address wethToken,
         string memory liquidityTokenName,
         string memory liquidityTokenSymbol
-    ) ERC20(liquidityTokenName, liquidityTokenSymbol) {
-
+    ) 
+    ERC20(liquidityTokenName, liquidityTokenSymbol) 
+    {
         // @audit-info zeo address check 
         i_wethToken = IERC20(wethToken);
         i_poolToken = IERC20(poolToken);
@@ -102,7 +95,7 @@ contract TSwapPool is ERC20 {
     /*//////////////////////////////////////////////////////////////
                         ADD AND REMOVE LIQUIDITY
     //////////////////////////////////////////////////////////////*/
-
+    
     /// @notice Adds liquidity to the pool
     /// @dev The invariant of this function is that the ratio of WETH, PoolTokens, and LiquidityTokens is the same
     /// before and after the transaction
@@ -132,7 +125,7 @@ contract TSwapPool is ERC20 {
         }
         if (totalLiquidityTokenSupply() > 0) {
             uint256 wethReserves = i_wethToken.balanceOf(address(this));
-            // @audit gas = don't need this line
+            // @audit gas = don't need this line, it's a waste of gas
             uint256 poolTokenReserves = i_poolToken.balanceOf(address(this));
             // Our invariant says weth, poolTokens, and liquidity tokens must always have the same ratio after the
             // initial deposit
@@ -298,7 +291,7 @@ contract TSwapPool is ERC20 {
         returns (uint256 inputAmount)
     {
         return
-            ((inputReserves * outputAmount) * 10000) /
+            ((inputReserves * outputAmount) * 10000) / // wtf maaaaaaaaan
             ((outputReserves - outputAmount) * 997);
     }
 
@@ -346,7 +339,7 @@ contract TSwapPool is ERC20 {
     function swapExactOutput(
         IERC20 inputToken,
         IERC20 outputToken,
-        uint256 outputAmount,
+        uint256 outputAmount, // @audit miss a slippage protection
         uint64 deadline
     )
         public

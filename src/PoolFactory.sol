@@ -26,8 +26,8 @@ contract PoolFactory {
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    mapping(address token => address pool) private s_pools;
-    mapping(address pool => address token) private s_tokens;
+    mapping(address token => address pool) private s_pools; // probably poolToken -> pool
+    mapping(address pool => address token) private s_tokens; // mapping back
 
     address private immutable i_wethToken;
 
@@ -47,18 +47,24 @@ contract PoolFactory {
                            EXTERNAL FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     // e tokenAddress -> weth for a token/weth pool
-    function createPool(address tokenAddress) external returns (address) {
-        if (s_pools[tokenAddress] != address(0)) {
-            revert PoolFactory__PoolAlreadyExists(tokenAddress);
+    function createPool(address tokenAddress) external returns (address) { 
+        if (s_pools[tokenAddress] != address(0)) {   // it's checking if the pool already exists
+            revert PoolFactory__PoolAlreadyExists(tokenAddress); // we can not create a pool that already exists
         }
         // e "T-swap DAI"
         // q weird ERC20 "what if the name function reverts ?"
         string memory liquidityTokenName = string.concat("T-Swap ", IERC20(tokenAddress).name());
         // "tsUSDC"
-        // @audit-info this should be .symbol() not .name()
+        // @audit-info this should be .symbol() not .name() -> look at the ERC20.sol
         string memory liquidityTokenSymbol = string.concat("ts", IERC20(tokenAddress).name());
-        TSwapPool tPool = new TSwapPool(tokenAddress, i_wethToken, liquidityTokenName, liquidityTokenSymbol);
-        s_pools[tokenAddress] = address(tPool);
+
+        TSwapPool tPool = new TSwapPool(
+            tokenAddress, // check the constructor in TSwapPool.sol
+            i_wethToken, // check the constructor in TSwapPool.sol
+            liquidityTokenName, 
+            liquidityTokenSymbol
+            );
+        s_pools[tokenAddress] = address(tPool); 
         s_tokens[address(tPool)] = tokenAddress;
         emit PoolCreated(tokenAddress, address(tPool));
         return address(tPool);

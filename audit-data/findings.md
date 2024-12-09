@@ -1,6 +1,6 @@
 ### [H-1] Incorrect fee calculation in `TSwapPool::getInputAmountBasedOnOutput` causes protocol to take too many tokens from users, resulting in lost fees
 
-**Description:** The getInputAmountBasedOnOutput function is intended to calculate the amount of tokens a user should deposit given an amount of tokens of output tokens. However, the function currently miscalculates the resulting amount. When calculating the fee, it scales the amount by 10_000 instead of 1_000.
+**Description:** The `getInputAmountBasedOnOutput` function is intended to calculate the amount of tokens a user should deposit given an amount of tokens of output tokens. However, the function currently miscalculates the resulting amount. When calculating the fee, it scales the amount by 10_000 instead of 1_000.
 
 **Impact:** Protocol takes more fees than expected from users.
 
@@ -27,7 +27,7 @@
 
 ### [H-2] Lack of slippage protection in `TSwapPool::swapExactOutput` causes users to potentially receive way fewer tokens
 
-**Description:** The swapExactOutput function does not include any sort of slippage protection. This function is similar to what is done in TSwapPool::swapExactInput, where the function specifies a minOutputAmount, the swapExactOutput function should specify a maxInputAmount.
+**Description:** The `swapExactOutput` function does not include any sort of slippage protection. This function is similar to what is done in `TSwapPool::swapExactInput`, where the function specifies a `minOutputAmount`, the `swapExactOutput` function should specify a `maxInputAmount`.
 
 **Impact:** If market conditions change before the transaciton processes, the user could get a much worse swap.
 
@@ -39,7 +39,7 @@
    ii. outputToken = WETH
    iii. outputAmount = 1
    iv. deadline = whatever
-3. The function does not offer a maxInput amount
+3. The function does not offer a `maxInputAmount`
 4. As the transaction is pending in the mempool, the market changes! And the price moves HUGE -> 1 WETH is now 10,000 USDC. 10x more than the user expected
 5. The transaction completes, but the user sent the protocol 10,000 USDC instead of the expected 1,000 USDC
 
@@ -50,8 +50,6 @@
         IERC20 inputToken,
 +       uint256 maxInputAmount,
 
-
-
         inputAmount = getInputAmountBasedOnOutput(outputAmount, inputReserves, outputReserves);
 +       if(inputAmount > maxInputAmount){
 +           revert();
@@ -61,15 +59,15 @@
 
 ### [H-3] `TSwapPool::sellPoolTokens` mismatches input and output tokens causing users to receive the incorrect amount of tokens
 
-**Description:** The sellPoolTokens function is intended to allow users to easily sell pool tokens and receive WETH in exchange. Users indicate how many pool tokens they're willing to sell in the poolTokenAmount parameter. However, the function currently miscalculaes the swapped amount.
+**Description:** The sellPoolTokens function is intended to allow users to easily sell pool tokens and receive WETH in exchange. Users indicate how many pool tokens they're willing to sell in the `poolTokenAmount` parameter. However, the function currently miscalculates the swapped amount.
 
-This is due to the fact that the swapExactOutput function is called, whereas the swapExactInput function is the one that should be called. Because users specify the exact amount of input tokens, not output.
+This is due to the fact that the `swapExactOutput` function is called, whereas the `swapExactInput` function is the one that should be called. Because users specify the exact amount of input tokens, not output.
 
 **Impact:** Users will swap the wrong amount of tokens, which is a severe disruption of protcol functionality.
 
 **Proof of Concept:**
 
-**Recommended Mitigation:** Consider changing the implementation to use `swapExactInput` instead of `swapExactOutput`. Note that this would also require changing the sellPoolTokens function to accept a new parameter (ie `minWethToReceive` to be passed to `swapExactInput`)
+**Recommended Mitigation:** Consider changing the implementation to use `swapExactInput` instead of `swapExactOutput`. Note that this would also require changing the `sellPoolTokens` function to accept a new parameter (ie `minWethToReceive` to be passed to `swapExactInput`)
 
 ```diff
     function sellPoolTokens(
@@ -86,12 +84,11 @@ Additionally, it might be wise to add a deadline to the function, as there is cu
 ### [H-4] In `TSwapPool::_swap` the extra tokens given to users after every `swapCount` breaks the protocol invariant of `x * y = k`
 
 **Description:** The protocol follows a strict invariant of `x * y = k`. Where:
-
 x: The balance of the pool token
 y: The balance of WETH
 k: The constant product of the two balances
 
-This means, that whenever the balances change in the protocol, the ratio between the two amounts should remain constant, hence the k. However, this is broken due to the extra incentive in the \_swap function. Meaning that over time the protocol funds will be drained.
+This means, that whenever the balances change in the protocol, the ratio between the two amounts should remain constant, hence the k. However, this is broken due to the extra incentive in the `_swap` function. Meaning that over time the protocol funds will be drained.
 
 The follow block of code is responsible for the issue.
 
@@ -110,12 +107,12 @@ Most simply put, the protocol's core invariant is broken.
 **Proof of Concept:**
 
 1. A user swaps 10 times, and collects the extra incentive of 1_000_000_000_000_000_000 tokens
-2. That user continues to swap untill all the protocol funds are drained
+2. That user continues to swap until all the protocol funds are drained
 
 <details>
 <summary>PoC</summary>
 
-Place the following into `TswapPool.t.sol`
+Place the following into `TswapPool.t.sol` (copy/paste `TSwapPool.t.sol:testDepositSwap` in unit test & replicate handler do)
 
 ```javascript
     function testInvariantBroken() public {
@@ -154,6 +151,8 @@ Place the following into `TswapPool.t.sol`
 
 </details>
 
+& run `forge test --mt testInvariantBroken -vvvvv`
+
 **Recommended Mitigation:** Remove the extra incentive mechanism. If you want to keep this in, we should account for the change in the x \* y = k protocol invariant. Or, we should set aside tokens in the same way we do with fees.
 
 ```diff
@@ -168,7 +167,9 @@ Place the following into `TswapPool.t.sol`
 
 ### [M-1] `TSwapPool::deposit` is missing deadline check causing transactions to complete even after the deadline
 
-**Description:** The deposit function accepts a deadline parameter, which according to the documentation is "The deadline for the transaction to be completed by". However, this parameter is never used. As a consequence, operationrs that add liquidity to the pool might be executed at unexpected times, in market conditions where the deposit rate is unfavorable.
+**Description:** The deposit function accepts a deadline parameter, which according to the documentation is "The deadline for the transaction to be completed by". However, this parameter is never used. As a consequence, operations that add liquidity to the pool might be executed at unexpected times, in market conditions where the deposit rate is unfavorable.
+
+<- MEV Attack ->
 
 **Impact:** Transactions could be sent when market conditions are unfavorable to deposit, even when adding a deadline parameter.
 
@@ -257,11 +258,11 @@ function deposit(
 
 ```
 
-### [I-4] Event is missing indexed fields
+### [I-4] Event is missing `indexed` fields
 
 Index event fields make the field more quickly accessible to off-chain tools that parse events. However, note that each index field costs extra gas during emission, so it's not necessarily best to index the maximum allowed per event (three fields). Each event should use three indexed fields if there are three or more fields, and gas usage is not particularly of concern for the events in question. If there are fewer than three fields, all of the fields should be indexed.
 
-Found in src/TSwapPool.sol: Line: 44
-Found in src/PoolFactory.sol: Line: 37
-Found in src/TSwapPool.sol: Line: 46
-Found in src/TSwapPool.sol: Line: 43
+Found in `src/TSwapPool.sol`: Line: 44
+Found in `src/PoolFactory.sol`: Line: 37
+Found in `src/TSwapPool.sol`: Line: 46
+Found in `src/TSwapPool.sol`: Line: 43
