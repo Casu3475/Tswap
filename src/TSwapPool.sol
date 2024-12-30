@@ -342,6 +342,7 @@ contract TSwapPool is ERC20 {
         uint256 outputAmount, // @audit miss a slippage protection
         uint64 deadline
     )
+
         public
         revertIfZero(outputAmount)
         revertIfDeadlinePassed(deadline)

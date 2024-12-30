@@ -59,7 +59,7 @@
 
 ### [H-3] `TSwapPool::sellPoolTokens` mismatches input and output tokens causing users to receive the incorrect amount of tokens
 
-**Description:** The sellPoolTokens function is intended to allow users to easily sell pool tokens and receive WETH in exchange. Users indicate how many pool tokens they're willing to sell in the `poolTokenAmount` parameter. However, the function currently miscalculates the swapped amount.
+**Description:** The `sellPoolTokens` function is intended to allow users to easily sell pool tokens and receive WETH in exchange. Users indicate how many pool tokens they're willing to sell in the `poolTokenAmount` parameter. However, the function currently miscalculates the swapped amount.
 
 This is due to the fact that the `swapExactOutput` function is called, whereas the `swapExactInput` function is the one that should be called. Because users specify the exact amount of input tokens, not output.
 
@@ -116,17 +116,20 @@ Place the following into `TswapPool.t.sol` (copy/paste `TSwapPool.t.sol:testDepo
 
 ```javascript
     function testInvariantBroken() public {
+        // A liquidity provider deposits liquidity into the pool
         vm.startPrank(liquidityProvider);
         weth.approve(address(pool), 100e18);
         poolToken.approve(address(pool), 100e18);
         pool.deposit(100e18, 100e18, 100e18, uint64(block.timestamp));
         vm.stopPrank();
 
+        // SET UP THE USER TO PERFORM SWAP
         uint256 outputWeth = 1e17;
-
         vm.startPrank(user);
         poolToken.approve(address(pool), type(uint256).max);
         poolToken.mint(user, 100e18);
+
+        //  EXECUTES SWAPS IN THE POOL
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
@@ -137,9 +140,11 @@ Place the following into `TswapPool.t.sol` (copy/paste `TSwapPool.t.sol:testDepo
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
 
+        // INVARIANT CHECK
         int256 startingY = int256(weth.balanceOf(address(pool)));
         int256 expectedDeltaY = int256(-1) * int256(outputWeth);
 
+        // FINAL SWAP & VALIDATION
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         vm.stopPrank();
 
