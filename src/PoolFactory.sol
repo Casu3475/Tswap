@@ -29,7 +29,7 @@ contract PoolFactory {
     mapping(address token => address pool) private s_pools; // probably poolToken -> pool
     mapping(address pool => address token) private s_tokens; // mapping back
 
-    address private immutable i_wethToken;
+    address private immutable i_wethToken; // the weth token is immutable because every token pair with weth
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
