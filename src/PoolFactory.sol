@@ -41,7 +41,7 @@ contract PoolFactory {
     //////////////////////////////////////////////////////////////*/
     constructor(address wethToken) {
         i_wethToken = wethToken;
-    }
+    } // missing 0 address check
 
     /*//////////////////////////////////////////////////////////////
                            EXTERNAL FUNCTIONS
