@@ -118,18 +118,19 @@ Place the following into `TswapPool.t.sol` (copy/paste `TSwapPool.t.sol:testDepo
     function testInvariantBroken() public {
         // A liquidity provider deposits liquidity into the pool
         vm.startPrank(liquidityProvider);
-        weth.approve(address(pool), 100e18);
-        poolToken.approve(address(pool), 100e18);
-        pool.deposit(100e18, 100e18, 100e18, uint64(block.timestamp));
+        weth.approve(address(pool), 100e18); // the LP approves the pool to transfer 100 weth tokens
+        poolToken.approve(address(pool), 100e18); // approve the pool to transfer 100 poolToken tokens.
+        pool.deposit(100e18, 100e18, 100e18, uint64(block.timestamp)); // The provider deposits the approved tokens into the pool
         vm.stopPrank();
 
         // SET UP THE USER TO PERFORM SWAP
-        uint256 outputWeth = 1e17;
+        uint256 outputWeth = 1e17; // the amount of weth the user wants to receive in each swap (0.1 weth).
         vm.startPrank(user);
-        poolToken.approve(address(pool), type(uint256).max);
-        poolToken.mint(user, 100e18);
+        poolToken.approve(address(pool), type(uint256).max); // The user approves the pool to transfer an unlimited amount of poolToken on their behalf.
+        poolToken.mint(user, 100e18); // The user is minted 100 poolToken tokens to perform swaps with.
 
-        //  EXECUTES SWAPS IN THE POOL
+        // EXECUTES SWAPS IN THE POOL
+        // Each swapExactOutput means the user is swapping poolToken for weth, and for each swap, the user is expecting to get 0.1 weth.
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
@@ -141,14 +142,18 @@ Place the following into `TswapPool.t.sol` (copy/paste `TSwapPool.t.sol:testDepo
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
 
         // INVARIANT CHECK
+        // This gets the current balance of weth in the pool before the final swap. It's cast to an int256 to handle potential negative values in further calculations.
         int256 startingY = int256(weth.balanceOf(address(pool)));
+        // The expected change in the weth balance (the pool should lose 0.1 weth per swap). Since there are multiple swaps, the expected total change (expectedDeltaY) is calculated based on how much weth is expected to be withdrawn from the pool for each swap.
         int256 expectedDeltaY = int256(-1) * int256(outputWeth);
 
         // FINAL SWAP & VALIDATION
         pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         vm.stopPrank();
 
+        //  This gets the final balance of weth in the pool.
         uint256 endingY = weth.balanceOf(address(pool));
+        // The actual change in the weth balance :
         int256 actualDeltaY = int256(endingY) - int256(startingY);
         assertEq(actualDeltaY, expectedDeltaY);
     }
