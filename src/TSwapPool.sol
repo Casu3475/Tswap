@@ -27,13 +27,13 @@ contract TSwapPool is ERC20 {
     error TSwapPool__OutputTooLow(uint256 actual, uint256 min);
     error TSwapPool__MustBeMoreThanZero();
 
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20; 
 
     /*//////////////////////////////////////////////////////////////
                             STATE VARIABLES
     //////////////////////////////////////////////////////////////*/
-    IERC20 private immutable i_wethToken;
-    IERC20 private immutable i_poolToken;
+    IERC20 private immutable i_wethToken; 
+    IERC20 private immutable i_poolToken; 
     uint256 private constant MINIMUM_WETH_LIQUIDITY = 1_000_000_000;
     uint256 private swap_count = 0;
     uint256 private constant SWAP_COUNT_MAX = 10; // cause of bugs in invariant test !
@@ -80,15 +80,18 @@ contract TSwapPool is ERC20 {
                                FUNCTIONS
     //////////////////////////////////////////////////////////////*/
     constructor(
-        address poolToken,
-        address wethToken,
-        string memory liquidityTokenName,
-        string memory liquidityTokenSymbol
+        address poolToken, //  the address of the pool token that points to an ERC20 token contract.
+        address wethToken, // the address of the WETH token that points to an ERC20 token contract.
+        string memory liquidityTokenName, // A parameter for specifying the name of the liquidity token
+        string memory liquidityTokenSymbol 
     ) 
+
+    // Calls the constructor of the parent ERC20 contract (from OpenZeppelin) to initialize the name and symbol of the ERC20 token being created by this contract.
     ERC20(liquidityTokenName, liquidityTokenSymbol) 
     {
         // @audit-info zeo address check 
-        i_wethToken = IERC20(wethToken);
+        i_wethToken = IERC20(wethToken);// IERC20 => to cast the wethToken address into an ERC20 token object.
+                                        // Assigns the resulting token object to the state variable i_wethToken, enabling the contract to interact with the WETH token's functions (e.g., transfer, approve, etc.).
         i_poolToken = IERC20(poolToken);
     }
 
@@ -107,7 +110,7 @@ contract TSwapPool is ERC20 {
     /// @param deadline The deadline for the transaction to be completed by
     function deposit(
         uint256 wethToDeposit, 
-        uint256 minimumLiquidityTokensToMint, // if it is empty, we can pick 100%
+        uint256 minimumLiquidityTokensToMint, 
         uint256 maximumPoolTokensToDeposit,
         // @audit deadline not being used? if someone sets a deadline, next block they could still deposit !
         uint64 deadline
@@ -283,6 +286,7 @@ contract TSwapPool is ERC20 {
         uint256 outputAmount,
         uint256 inputReserves,
         uint256 outputReserves
+        // @audit incorrect fee factor
     )
         public
         pure
@@ -339,7 +343,7 @@ contract TSwapPool is ERC20 {
     function swapExactOutput(
         IERC20 inputToken,
         IERC20 outputToken,
-        uint256 outputAmount, // @audit miss a slippage protection
+        uint256 outputAmount, // @audit miss a slippage protection uint256 maxInputAmount ?à
         uint64 deadline
     )
 
@@ -369,8 +373,8 @@ contract TSwapPool is ERC20 {
         uint256 poolTokenAmount
     ) external returns (uint256 wethAmount) {
         // pool token -> input
-        // @audit this is wrong ! 
         // swapexactinput(minWethToReceive)
+        // @ audit According to the natspec, `TSwapPool::sellPoolTokens` is used to facilitate users selling pool tokens in exchange of weth. However, `TSwapPool::sellPoolTokens` implements wrong function `swapExactOutput` to calculate the weth amount user should get after the user inputs the amount of pool token he intends to sell. The correct return value should be calculated through function `swapExactInput` instead
         return
             swapExactOutput(
                 i_poolToken,
@@ -401,8 +405,9 @@ contract TSwapPool is ERC20 {
         ) {
             revert TSwapPool__InvalidToken();
         }
-
+        // -----------------------------------
         // @audit breaks protocol invariant !
+        // ------------------------------------
         swap_count++;
         if (swap_count >= SWAP_COUNT_MAX) {
             swap_count = 0;
